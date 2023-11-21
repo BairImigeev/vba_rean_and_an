@@ -1,0 +1,548 @@
+Option Explicit
+
+    Dim startDate As Date
+    Dim Begin_Date As Date
+    
+    Dim diff As Long
+    Dim minValue As Long
+    Dim diff_display As Long
+    
+    Dim srcSheet As Worksheet
+    Dim destSheet As Worksheet
+    Dim destSheet_copy As Worksheet
+    
+    
+    Dim rng As Range
+    Dim cell As Range
+    
+    Dim startRow As Long
+    
+    
+    Dim sheet_3 As Worksheet
+    Dim sheet_1 As Worksheet
+    
+    Dim endDate As Date
+    
+    
+    Dim start_column_date As Integer
+    Dim start_column_day As Integer
+    
+    Dim srcSheet_1 As Worksheet
+    Dim srcSheet_3 As Worksheet
+    
+    Dim rng_1 As Range
+    Dim rng_3 As Range
+    Dim rng_date As Range
+    
+    Dim rng_time As Range
+    Dim targetCell As Range
+    Dim shift As Integer
+    
+    
+    Dim ws As Worksheet
+    Dim chk As Shape
+    Dim line1 As Shape
+    Dim line2 As Shape
+       
+    Dim left As Double
+    Dim top As Double
+    
+    Dim i As Integer
+    Dim destRow As Integer
+    Dim destColumn As Integer
+    
+    
+    Dim j As Long
+    
+    Dim ostatok As Long
+    Dim n As Long
+    
+    Dim min_minuts As Long
+    'min_minuts = ThisWorkbook.Sheets(3).Cells(1, 2).Value
+    'Debug.Print ("min_minuts : " & min_minuts)
+   
+    Dim Date_begin As Date
+    Dim Search_Date As Date
+    Dim Date_j As Date
+    
+Sub MainProcedure()
+
+    ' Aucuaaai ia?ao? i?ioaao?o
+    Call CalculateTimeDifference
+
+    ' Aucuaaai aoi?o? i?ioaao?o
+    Call GroupRows
+
+    ' Aucuaaai o?aou? i?ioaao?o
+    Call LabelColumns
+
+    ' Aucuaaai ?aoaa?oo? i?ioaao?o
+    Call filling
+
+End Sub
+
+Sub CalculateTimeDifference()
+       
+    Set srcSheet = ThisWorkbook.Sheets(3)
+    Set rng = srcSheet.Range("A5:A" & srcSheet.Cells(srcSheet.Rows.Count, "A").End(xlUp).Row)
+    ' I?aia?acoai cia?aiey y?aae a aaou, oae?aai a?aiy n iiiiuu? ooieoee Int
+    
+    startDate = Int(CDate(srcSheet.Range("A4").Value))
+    minValue = WorksheetFunction.Min(rng.Columns(7))
+    Begin_Date = DateAdd("n", minValue, startDate)
+    ThisWorkbook.Sheets(3).Range("A1").Value = Begin_Date
+    Debug.Print (Begin_Date)
+    ThisWorkbook.Sheets(3).Range("B1").Value = minValue
+
+End Sub
+
+Sub GroupRows()
+    
+    Set srcSheet = ThisWorkbook.Sheets(2) 'лист струтктуры
+    Set destSheet = ThisWorkbook.Sheets(1) ' целевой лист
+    Set destSheet_copy = ThisWorkbook.Sheets(4) 'сортировочный с листа 2
+    
+    srcSheet.UsedRange.Copy destSheet_copy.Cells(1, 1)
+    Set rng = destSheet_copy.Range("A10:A" & srcSheet.Cells(srcSheet.Rows.Count, "A").End(xlUp).Row)
+    
+    With destSheet_copy.Sort
+        .SortFields.Add key:=destSheet_copy.Range("I10"), SortOn:=xlSortOnValues, Order:=xlAscending
+        .SetRange destSheet_copy.Range("A10:AY" & rng.Rows.Count + 10)
+        .Header = xlNo
+        .Apply
+    End With
+    
+    Set rng = destSheet_copy.Range("A10:A" & srcSheet.Cells(srcSheet.Rows.Count, "A").End(xlUp).Row)
+
+    startRow = 10
+    destRow = 5
+    
+    
+    For i = 1 To rng.Rows.Count
+        Debug.Print (" destRow " & destRow)
+        Debug.Print (" i " & i)
+        'Назначения
+        If rng.Cells(i + 1, 2).Value = "Назначения" Then
+            Call insert_value_cells_merge(i, destRow)
+            destRow = destRow + 1
+            Call Naznachenie(i, destRow)
+        End If
+        'События
+        If rng.Cells(i, 2).Value = "События" Then
+            'печать сноски событие
+            Call insert_value_cells_merge(i, destRow)
+            destRow = destRow + 1
+            'вызов процедуры событий
+            Call Events(i, destRow)
+        End If
+        
+        Call insert_value_cells_merge(i, destRow)
+        destRow = destRow + 1
+        While rng.Cells(i, 2).Value = rng.Cells(i + 1, 2).Value
+            Debug.Print ("destRow : " & destRow)
+            Debug.Print (" i " & i)
+            Call insert_value_cells(i, destRow, 1)
+            i = i + 1
+            destRow = destRow + 1
+        Wend
+        Call insert_value_cells(i, destRow, 1)
+        destRow = destRow + 1
+    Next i
+    Debug.Print (" i : " & i)
+    Debug.Print (" destRow : " & destRow)
+    Debug.Print (" cia?aiea iia i " & rng.Cells(i - 1, 2).Value)
+        
+    destRow = destRow + 1
+    Debug.Print (" i : " & i)
+    Debug.Print (" destRow : " & destRow)
+    Debug.Print (" cia?aiea iia i " & rng.Cells(i - 1, 2).Value)
+    Debug.Print (" cia?aiey iia aaaaaiey : " & rng.Cells(i, 26).Value)
+    destSheet.Cells(destRow + i, "A").Value = rng.Cells(i, 9).Value
+    i = i + 1
+    destRow = destRow + 1
+    destSheet.Columns(2).AutoFit
+
+End Sub
+
+Sub insert_value_cells_merge(i As Integer, destRow As Integer)
+    With destSheet.Range("A" & destRow & ":AA" & destRow)
+        .Merge
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .Value = rng.Cells(i + 1, 2).Value
+        .WrapText = True
+        .Font.Size = 12
+        .Name = "_" & rng.Cells(i + 1, 1).Value
+    End With
+End Sub
+
+Sub insert_value_cells(i As Integer, destRow As Integer, destColumn As Integer)
+    With destSheet.Cells(destRow, destColumn)
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .Value = rng.Cells(i, 12).Value
+        .WrapText = True
+        .Font.Size = 12
+        .Name = "_" & rng.Cells(i, 9).Value
+   End With
+End Sub
+
+Sub insert_vved(destRow As Integer, vved As String, i As Integer)
+    With destSheet.Range("A" & destRow & ":AA" & destRow)
+        .Merge
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlTop
+        .WrapText = True
+        .Font.Size = 10
+        .Value = vved
+        .Font.Bold = True
+    End With
+End Sub
+
+Function vvedenie(i As Integer) As String
+    
+    Dim rng_vved As Integer
+    Dim vved As String
+    rng_vved = rng.Cells(i, 26).Value
+    
+    Select Case rng_vved
+        Case 80
+            vved = "Гемокомпонент, внутривенно капельно"
+        Case 81
+            vved = "Внутривенно капельно"
+        Case 82
+            vved = "Внутривенно болюсно"
+        Case 83
+            vved = "Внутривенно микроструйно"
+        Case 84
+            vved = "Внутримышечно"
+        Case 85
+            vved = "Подкожно"
+        Case 86
+            vved = "Энтерально"
+        Case 87
+            vved = "Сублингвально"
+        Case 88
+            vved = "Суббуккально"
+        Case 89
+            vved = "Ректально"
+        Case 91
+            vved = "Эпидурально болюсно"
+        Case 92
+            vved = "Эпидурально микроструйно"
+        Case 93
+            vved = "Наружное применение"
+        Case 94
+            vved = "Ингаляционно"
+        Case 95
+            vved = "Назально"
+        Case 96
+            vved = "Глазные капли"
+        Case 97
+            vved = "Ушные капли"
+        Case 98
+            vved = "Ингаляционно длительно"
+        Case 99
+            vved = "Энтерально длительно"
+        Case 111
+            vved = "Энтерально через назогастральный зонд"
+        Case 112
+            vved = "Под коньюнктиву"
+        Case 113
+            vved = "Ретробульбарно"
+        Case 114
+            vved = "Интравитреально"
+        Case 115
+            vved = "Парабульбарно"
+        Case 116
+            vved = "Нижее веко"
+        Case 237
+            vved = "Через гастростому"
+    End Select
+    vvedenie = vved
+End Function
+
+Sub Naznachenie(i As Integer, destRow As Integer)
+    'i_1 = i
+    'destRow = destRow
+    Dim vved As String
+    
+    Debug.Print (" i : " & i)
+    Debug.Print (" destRow : " & destRow)
+    Debug.Print (" Количество строк : " & rng.Rows.Count)
+    For i = i To rng.Rows.Count
+        vved = vvedenie(i)
+        Debug.Print (" vved : " & vved)
+        Debug.Print (" значение i: " & i)
+        Call insert_vved(destRow, vved, i)
+        destRow = destRow + 1
+        While rng.Cells(i, 10).Value = rng.Cells(i + 1, 10).Value
+            If IsEmpty(rng.Cells(i + 1, 1).Value) Then
+                Exit For
+            End If
+            Debug.Print (" Значение ячейки 10 столбца : " & rng.Cells(i, 10).Value)
+            Debug.Print (" Значение ячейки 10 столбца после " & rng.Cells(i + 1, 10).Value)
+            Call insert_value_cells(i, destRow)
+            i = i + 1
+            destRow = destRow + 1
+        Wend
+        Call insert_value_cells(i, destRow, destColumn)
+        destRow = destRow + 1
+    Next i
+    
+    
+    Debug.Print (rng.Cells(1, 1).Address(RowAbsolute:=False, ColumnAbsolute:=False))
+    Debug.Print (rng.Cells(rng.Cells.Rows.Count, rng.Cells.Columns.Count).Address(RowAbsolute:=False, ColumnAbsolute:=False))
+    Debug.Print (rng.Rows.Count + 10)
+    
+End Sub
+
+Sub Events(i As Integer, destRow As Integer)
+    
+    Dim width_filling As Integer
+    Dim pr_begin As Integer
+    Dim res_cell As Variant
+    
+    pr_begin = 0
+    
+    For i = i To rng.Rows.Count
+        If rng.Cells(i, 23).Value = 100 Or rng.Cells(i, 23).Value = 0 Then
+            Debug.Print ("чистая строка : " & rng.Cells(i, 23).Value)
+            Call insert_value_cells(i, destRow, 1)
+            destRow = destRow + 1
+        Else
+            If pr_begin = 0 Then
+                Call insert_value_cells(i, destRow, 1)
+                pr_begin = 1
+                width_filling = 0
+                res_cell = return_cells_join_answer(i)
+                destColumn = res_cell(0) - res_cell(1) + 1
+                i = i + 1
+            End If
+            
+            While width_filling <= 100
+                width_filling = width_filling + rng.Cells(i, 23).Value
+                Dim diff_res As Integer
+                
+                res_cell = return_cells_join_answer(i)
+                'diff_res = res_cell(0) - res_cell(1)
+                
+                Debug.Print ("количество объединенных ячеек " & res_cell(0))
+                Debug.Print ("количество объединенных ячеек для " & res_cell(1))
+                Debug.Print ("количество объединенных ячеек " & diff_res)
+                Debug.Print ("на сколько отошшёл с начальной ячейки : " & destColumn)
+                Call insert_value_cells(i, destRow, destColumn)
+                
+                destColumn = destColumn + (res_cell(0) - res_cell(1) + 1)
+                i = i + 1
+            Wend
+        End If
+    Next i
+End Sub
+
+Sub timeColumns()
+    Dim i As Integer
+    Dim z As Integer
+   
+    Dim ws As Worksheet
+    Set sheet_1 = ThisWorkbook.Sheets(1)
+    i = 8
+    While i <= 23
+        For z = 2 To 17
+            With sheet_1.Cells(4, z)
+                 Debug.Print (" z : " & z)
+                 .NumberFormat = "General"
+                 .HorizontalAlignment = xlCenter
+                 .VerticalAlignment = xlCenter
+                 .WrapText = True
+                 .Value = "'" & Format(i, "00")
+                 .Font.Size = 12
+                 .Font.Color = RGB(128, 128, 128)
+            End With
+            i = i + 1
+            Debug.Print (" i : " & i)
+        Next z
+    Wend
+    i = 0
+    While i <= 7
+        For z = 18 To 25
+            With sheet_1.Cells(4, z)
+                 Debug.Print (" z : " & z)
+                 .NumberFormat = "General"
+                 .HorizontalAlignment = xlCenter
+                 .VerticalAlignment = xlCenter
+                 .WrapText = True
+                 .Value = "'" & Format(i, "00")
+                 .Font.Size = 12
+                 .Font.Color = RGB(128, 128, 128)
+            End With
+            i = i + 1
+            Debug.Print (" i : " & i)
+        Next z
+    Wend
+    sheet_1.Cells(4, 26).Value = "C"
+ End Sub
+ 
+Function return_cells_join_answer(i As Integer) As Variant
+    
+    Dim cell_width As Double
+    Dim cell_ost_width As Double
+    
+    cell_width = 24 / 100 * rng.Cells(i, 23).Value
+    cell_ost_width = cell_width - Int(cell_width)
+    
+    Debug.Print ("Остаток : " & cell_ost_width)
+    
+    If cell_ost_width >= 0.5 Then
+        cell_width = WorksheetFunction.RoundUp(cell_width, 0)
+    Else
+        cell_width = WorksheetFunction.RoundDown(cell_width, 0)
+    End If
+    
+    Debug.Print ("результат округления : " & cell_width)
+    Debug.Print (" Результат функции : " & Int(cell_width / 2))
+    return_cells_join_answer = Array(Int(cell_width), Int(cell_width / 2))
+    
+End Function
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Sub filling()
+    
+    Date_begin = Int(ThisWorkbook.Sheets(3).Cells(4, 1).Value)
+    Debug.Print ("Date_begin : " & Date_begin)
+    
+    
+    Set srcSheet_1 = ThisWorkbook.Sheets(1) ' enoiaiue eeno
+    Set srcSheet_3 = ThisWorkbook.Sheets(3)
+    
+    Set rng_1 = srcSheet_1.Range("A8:A" & srcSheet_1.Cells(srcSheet_1.Rows.Count, "A").End(xlUp).Row)
+    Set rng_3 = srcSheet_3.Range("A5:A" & srcSheet_3.Cells(srcSheet_3.Rows.Count, "A").End(xlUp).Row)
+    
+    Set rng_date = srcSheet_1.Range("C4:" & srcSheet_1.Cells(4, srcSheet_1.Columns.Count).End(xlToLeft).Address)
+    Set rng_time = srcSheet_1.Range("C6:" & srcSheet_1.Cells(6, srcSheet_1.Columns.Count).End(xlToLeft).Address)
+    
+    
+    'Debug.Print ("eiee?anoai no?ie a ia?aii eenoa: " & rng_1.Rows.Count)
+    'Debug.Print ("eiee?anoai no?ie a o?aouai eenoa : " & rng_3.Rows.Count)
+    'Debug.Print ("eiee?anoai no?ie a aiaaiii aeaiaciia : " & rng_date.Rows.Count)
+    'Debug.Print ("eiee?anoai noieaoia a aiaaiii aeaiaciia  : " & rng_date.Columns.Count)
+    'Debug.Print ("nooee : " & rng_time.Columns.Count)
+    
+    n = 1
+    For i = 1 To rng_1.Rows.Count
+        Debug.Print (" iiea c eenoa_1 id : " & rng_1.Cells(i, 1).Value)
+            For j = n To rng_3.Rows.Count
+                If rng_1.Cells(i, 1).Value = rng_3.Cells(j, 1) Then
+                    Search_Date = DateAdd("n", rng_3.Cells(j, 7).Value, Date_begin)
+                    Debug.Print ("?acieoa : " & rng_3.Cells(j, 7).Value)
+                    Debug.Print ("Eneiiay aaoa n ?acieoae : " & Int(Search_Date))
+                    For Each cell In rng_date
+                        Debug.Print (cell.MergeArea.Cells(1, 1).Value)
+                        If cell.MergeCells And cell.MergeArea.Cells(1, 1).Value = Int(Search_Date) Then
+                            Debug.Print ("Row: " & cell.MergeArea.Cells(1, 1).Row)
+                            Debug.Print ("Column: " & cell.MergeArea.Cells(1, 1).Column)
+                            ostatok = rng_3.Cells(j, 7).Value / 60 Mod 24
+                            Debug.Print (" ostatok : " & ostatok)
+                                shift = 0
+                                Select Case ostatok
+                                     Case 0 To 7
+                                         shift = 0
+                                     Case 8 To 11
+                                         shift = 1
+                                     Case 12 To 19
+                                         shift = 2
+                                     Case Is >= 20
+                                         shift = 3
+                                 End Select
+                             With rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift)
+                                .HorizontalAlignment = xlCenter
+                                .VerticalAlignment = xlCenter
+                                .Value = rng_3.Cells(j, 5).Value
+                                .WrapText = True
+                                .Font.Size = 12
+                                .Font.Color = RGB(0, 0, 0)
+                             End With
+                             
+                                
+                             If rng_3.Cells(j, 3).Value = "Iacia?aiey" And Not IsEmpty(rng_3.Cells(j, 6).Value) And rng_3.Cells(j, 9) = 1 Then
+                                Set targetCell = rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift)
+                                targetCell.Interior.Color = RGB(128, 128, 128)
+                                left = rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).left + rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).Width - 10
+                                top = rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).top + rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).Height - 10
+                                If left >= srcSheet_1.Range("A1").left And left + 20 <= srcSheet_1.Range("A1").left + srcSheet_1.Columns.Width And _
+                                    top >= srcSheet_1.Range("A1").top And top + 20 <= srcSheet_1.Range("A1").top + srcSheet_1.Rows.Height Then
+                                    Set chk = srcSheet_1.Shapes.AddShape(msoShape32pointStar, left, top, 10, 10)
+                                    chk.Fill.ForeColor.RGB = RGB(0, 255, 0)
+                                    chk.Adjustments.Item(1) = 0.5
+                                End If
+                                
+                             ElseIf rng_3.Cells(j, 9) = 2 Then
+                                Debug.Print (" i : " & i)
+                                'Debug.Print (" Column : " & Column + shift)
+                                Set targetCell = rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift)
+                                targetCell.Interior.Color = RGB(128, 128, 128)
+
+                                Set line1 = srcSheet_1.Shapes.AddLine( _
+                                    BeginX:=targetCell.left, _
+                                    BeginY:=targetCell.top, _
+                                    EndX:=targetCell.left + targetCell.Width, _
+                                    EndY:=targetCell.top + targetCell.Height)
+                                line1.Line.ForeColor.RGB = RGB(255, 0, 0)
+                                
+                                Set line2 = srcSheet_1.Shapes.AddLine( _
+                                    BeginX:=targetCell.left, _
+                                    BeginY:=targetCell.top + targetCell.Height, _
+                                    EndX:=targetCell.left + targetCell.Width, _
+                                    EndY:=targetCell.top)
+                                line2.Line.ForeColor.RGB = RGB(255, 0, 0)
+
+                              ElseIf rng_3.Cells(j, 9) = 5 Then
+                                Set targetCell = rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift)
+                                targetCell.Interior.Color = RGB(128, 128, 128)
+                                left = rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).left + rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).Width - 10
+                                top = rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).top + rng_1.Cells(i, cell.MergeArea.Cells(1, 1).Column + shift).Height - 10
+                                If left >= srcSheet_1.Range("A1").left And left + 20 <= srcSheet_1.Range("A1").left + srcSheet_1.Columns.Width And _
+                                    top >= srcSheet_1.Range("A1").top And top + 20 <= srcSheet_1.Range("A1").top + srcSheet_1.Rows.Height Then
+                                    Set chk = srcSheet_1.Shapes.AddShape(msoShape32pointStar, left, top, 10, 10)
+                                    chk.Fill.ForeColor.RGB = RGB(0, 100, 0)
+                                    chk.Adjustments.Item(1) = 0.5
+                                End If
+                              End If
+                            Exit For
+                        End If
+                    Next cell
+                End If
+            Next j
+        'Debug.Print (" s = " & s)
+    Next i
+End Sub
+
+
+
